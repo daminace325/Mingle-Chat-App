@@ -9,8 +9,6 @@ const cors = require('cors')
 const bcrypt = require('bcryptjs')
 const ws = require('ws')
 const fs = require('fs')
-const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
-
 
 dotenv.config()
 mongoose.connect(process.env.MONGO_URL)
@@ -32,15 +30,6 @@ app.use(cors({
 const jwtSecret = process.env.JWT_SECRET
 const bcryptSalt = bcrypt.genSaltSync(10)
 
-
-const s3 = new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-    }
-});
-
 app.get('/test', (req, res) => {
     res.json('Test OK')
 })
@@ -58,7 +47,6 @@ async function getUserDataFromRequest(req) {
         }
     })
 }
-
 
 
 app.get('/messages/:userId', async (req, res) => {
@@ -186,73 +174,21 @@ wss.on('connection', (connection, req) => {
         }
     }
 
-    // connection.on('message', async (message) => {
-    //     const messageData = JSON.parse(message.toString())
-    //     const { recipient, text, file } = messageData
-    //     let filename = null
-    //     if(file){
-    //         console.log('size', file.data.length);
-    //         const parts = file.name.split('.')
-    //         const ext = parts[parts.length - 1]
-    //         filename = Date.now() + '.' + ext
-    //         const path = __dirname + '/uploads/' + filename
-    //         const bufferData = Buffer.from(file.data.split(',')[1], 'base64');
-    //         fs.writeFile(path, bufferData, () => {
-    //             console.log('File Saved: ' + path);
-    //         })
-    //     }
-    //     if (recipient && (text || file)) {
-    //         const messageDoc = await Message.create({
-    //             sender: connection.userId,
-    //             recipient,
-    //             text,
-    //             file: file ? filename : null
-    //         });
-    //         console.log('created message');
-            
-    //         [...wss.clients]
-    //             .filter(c => c.userId === recipient)
-    //             .forEach(c => c.send(JSON.stringify({
-    //                 text,
-    //                 sender: connection.userId,
-    //                 recipient,
-    //                 file: file ? filename : null,
-    //                 _id: messageDoc._id
-    //             })))
-    //     }
-    // })
-
     connection.on('message', async (message) => {
-        const messageData = JSON.parse(message.toString());
-        const { recipient, text, file } = messageData;
-        let filename = null;
-    
-        if (file) {
+        const messageData = JSON.parse(message.toString())
+        const { recipient, text, file } = messageData
+        let filename = null
+        if(file){
             console.log('size', file.data.length);
-            const parts = file.name.split('.');
-            const ext = parts[parts.length - 1];
-            filename = Date.now() + '.' + ext;
-    
-            // Convert base64 file data to a buffer
+            const parts = file.name.split('.')
+            const ext = parts[parts.length - 1]
+            filename = Date.now() + '.' + ext
+            const path = __dirname + '/uploads/' + filename
             const bufferData = Buffer.from(file.data.split(',')[1], 'base64');
-    
-            // Upload file to S3
-            const uploadParams = {
-                Bucket: process.env.AWS_BUCKET_NAME,
-                Key: filename,
-                Body: bufferData,
-                ContentType: file.type,
-                ACL: 'public-read',  // Allow public read access
-            };
-    
-            try {
-                await s3.send(new PutObjectCommand(uploadParams));
-                console.log('File uploaded successfully to S3');
-            } catch (err) {
-                console.error('Error uploading file:', err);
-            }
+            fs.writeFile(path, bufferData, () => {
+                console.log('File Saved: ' + path);
+            })
         }
-    
         if (recipient && (text || file)) {
             const messageDoc = await Message.create({
                 sender: connection.userId,
@@ -260,7 +196,8 @@ wss.on('connection', (connection, req) => {
                 text,
                 file: file ? filename : null
             });
-    
+            console.log('created message');
+            
             [...wss.clients]
                 .filter(c => c.userId === recipient)
                 .forEach(c => c.send(JSON.stringify({
@@ -269,10 +206,9 @@ wss.on('connection', (connection, req) => {
                     recipient,
                     file: file ? filename : null,
                     _id: messageDoc._id
-                })));
+                })))
         }
-    });
-    
+    })
 
     //for notifying the online users when someone connects
     notifyAboutOnlinePeople()
