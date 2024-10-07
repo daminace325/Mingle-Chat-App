@@ -148,8 +148,6 @@ wss.on('connection', (connection, req) => {
             clearInterval(connection.timer)
             connection.terminate()
             notifyAboutOnlinePeople()
-            console.log('dead');
-            
         }, 1000);
     }, 5000);
 
@@ -196,7 +194,6 @@ wss.on('connection', (connection, req) => {
                 text,
                 file: file ? filename : null
             });
-            console.log('created message');
             
             [...wss.clients]
                 .filter(c => c.userId === recipient)
