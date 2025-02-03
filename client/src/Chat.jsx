@@ -153,7 +153,6 @@ export default function Chat() {
 
     return (
         <div className="flex flex-col sm:flex-row h-screen bg-gradient-to-br from-sky-50 to-sky-100">
-            {/* Sidebar */}
             <div className={`
                 fixed sm:static inset-0 bg-gradient-to-b from-sky-800 to-sky-900
                 w-3/4 sm:w-1/3 md:w-1/4 py-2 sm:py-4 px-2 sm:px-4 
@@ -161,7 +160,6 @@ export default function Chat() {
                 ${showSidebar ? 'translate-x-0' : '-translate-x-full'} 
                 sm:translate-x-0
             `}>
-                {/* Close button for mobile */}
                 <button 
                     onClick={() => setShowSidebar(false)}
                     className="sm:hidden absolute top-4 right-4 text-white hover:text-sky-200"
@@ -234,7 +232,6 @@ export default function Chat() {
                 </div>
             </div>
 
-            {/* Overlay for mobile */}
             {showSidebar && (
                 <div 
                     className="fixed inset-0 bg-black/50 z-30 sm:hidden"
@@ -242,11 +239,18 @@ export default function Chat() {
                 ></div>
             )}
 
-            {/* Chat Area - Now full width on mobile */}
             <div className="flex flex-col w-full sm:w-2/3 md:w-3/4 p-2 sm:p-6 h-[calc(100vh-4rem)] sm:h-auto">
                 <div className="flex-grow">
                     {!selectedUserId && (
                         <div className="flex h-full flex-col items-center justify-center">
+                            <button 
+                                onClick={() => setShowSidebar(!showSidebar)}
+                                className="sm:hidden absolute top-4 left-4 p-1.5 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition-colors"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                </svg>
+                            </button>
                             <div className="text-sky-800 text-2xl sm:text-4xl mb-2 sm:mb-4 font-bold text-center">
                                 Welcome to Mingle! 👋
                             </div>

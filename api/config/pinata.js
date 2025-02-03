@@ -10,7 +10,6 @@ const pinataConfig = {
     groupId: process.env.PINATA_GROUP_ID
 };
 
-// Validate configuration
 function validatePinataConfig() {
     if (!pinataConfig.pinataJWT) {
         throw new Error('Pinata JWT token is not configured');
@@ -29,7 +28,6 @@ async function uploadToPinata(fileBuffer, fileName) {
             filename: fileName
         });
 
-        // Add metadata for private group
         const metadata = JSON.stringify({
             name: fileName,
             keyvalues: {
@@ -41,7 +39,6 @@ async function uploadToPinata(fileBuffer, fileName) {
         });
         formData.append('pinataMetadata', metadata);
 
-        // Configure private options
         const options = JSON.stringify({
             cidVersion: 1,
             wrapWithDirectory: false,
