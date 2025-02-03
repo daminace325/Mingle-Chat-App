@@ -8,7 +8,7 @@ const Message = require('./models/Message')
 const cors = require('cors')
 const bcrypt = require('bcryptjs')
 const ws = require('ws')
-const fs = require('fs')
+const { uploadToPinata } = require('./config/pinata')
 
 dotenv.config()
 mongoose.connect(process.env.MONGO_URL)
@@ -170,26 +170,37 @@ wss.on('connection', (connection, req) => {
             notifyAboutOnlinePeople();
         } else {
             const { recipient, text, file } = messageData;
-            let filename = null;
+            let fileUrl = null;
+            let fileType = null;
+
             if (file) {
-                const parts = file.name.split('.');
-                const ext = parts[parts.length - 1];
-                filename = Date.now() + '.' + ext;
-                const path = __dirname + '/uploads/' + filename;
                 const bufferData = Buffer.from(file.data.split(',')[1], 'base64');
-                fs.writeFile(path, bufferData, () => {
-                    console.log('file saved:' + path);
-                });
+                const fileName = `${Date.now()}_${file.name}`;
+                fileType = file.name.split('.').pop();
+                
+                try {
+                    const pinataResponse = await uploadToPinata(bufferData, fileName);
+                    if (pinataResponse.success) {
+                        fileUrl = pinataResponse.url;
+                    } else {
+                        console.error('Failed to upload file to Pinata');
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Error uploading to Pinata:', error);
+                    return;
+                }
             }
-            if (recipient && (text || file)) {
+
+            if (recipient && (text || fileUrl)) {
                 const messageDoc = await Message.create({
                     sender: connection.userId,
                     recipient,
                     text,
-                    file: file ? filename : null,
+                    file: fileUrl,
+                    fileType: fileType
                 });
                 
-                // Send to recipient
                 [...wss.clients]
                     .filter(client => client.userId === recipient || client.userId === connection.userId)
                     .forEach(client => {
@@ -197,7 +208,8 @@ wss.on('connection', (connection, req) => {
                             text,
                             sender: connection.userId,
                             recipient,
-                            file: file ? filename : null,
+                            file: fileUrl,
+                            fileType: fileType,
                             _id: messageDoc._id,
                         }));
                     });
