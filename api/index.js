@@ -128,31 +128,29 @@ const wss = new ws.WebSocketServer({ server })
 
 wss.on('connection', (connection, req) => {
     function notifyAboutOnlinePeople() {
-        const validClients = Array.from(wss.clients).filter(client => 
-            client.userId && 
-            client.username && 
-            client.readyState === ws.OPEN
-        );
-        
-        validClients.forEach(client => {
-            client.send(JSON.stringify({
-                online: validClients.map(c => ({
-                    userId: c.userId,
-                    username: c.username
-                }))
-            }));
-        });
+        [...wss.clients]
+            .filter(client => client.userId && client.username)
+            .forEach(client => {
+                client.send(JSON.stringify({
+                    online: [...wss.clients]
+                        .filter(c => c.userId && c.username)
+                        .map(c => ({userId: c.userId, username: c.username}))
+                }));
+            });
     }
 
     // Read username and id from the cookie for this connection
     const cookies = req.headers.cookie;
     if (cookies) {
-        const tokenCookieString = cookies.split('; ').find(str => str.startsWith('token='));
+        const tokenCookieString = cookies.split(';').find(str => str.trim().startsWith('token='));
         if (tokenCookieString) {
-            const token = tokenCookieString.split('=')[1];
+            const token = tokenCookieString.split('=')[1].trim();
             if (token) {
                 jwt.verify(token, jwtSecret, {}, (err, userData) => {
-                    if (err) throw err;
+                    if (err) {
+                        console.error('WebSocket JWT verification error:', err);
+                        return;
+                    }
                     const { userId, username } = userData;
                     connection.userId = userId;
                     connection.username = username;

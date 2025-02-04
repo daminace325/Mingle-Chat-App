@@ -57,7 +57,11 @@ export default function Chat() {
 
     function connectToWs() {
         const wsUrl = import.meta.env.VITE_WS_URL;
-        const ws = new WebSocket(wsUrl);
+        const ws = new WebSocket(wsUrl, [], {
+            headers: {
+                Cookie: document.cookie
+            }
+        });
         setWs(ws);
 
         ws.addEventListener('message', handleMessage);
