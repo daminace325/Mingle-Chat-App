@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: mingle-chat-api
+    runtime: node
+    buildCommand: cd api && npm install
+    startCommand: cd api && node index.js
