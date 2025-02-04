@@ -56,7 +56,8 @@ export default function Chat() {
     }, []);
 
     function connectToWs() {
-        const ws = new WebSocket(import.meta.env.VITE_WS_URL || 'ws://localhost:3000');
+        const wsUrl = import.meta.env.VITE_WS_URL;
+        const ws = new WebSocket(wsUrl);
         setWs(ws);
 
         ws.addEventListener('message', handleMessage);
