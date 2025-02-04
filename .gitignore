@@ -7,6 +7,8 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+*.env
+
 client/node_modules/
 api/node_modules/
 dist
@@ -23,5 +25,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-api/.env
