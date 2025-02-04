@@ -85,7 +85,7 @@ app.post('/api/login', async (req, res) => {
         const passOk = await bcrypt.compare(password, foundUser.password);
         if (passOk) {
             jwt.sign({ userId: foundUser._id, username }, jwtSecret, {}, (err, token) => {
-                res.cookie('token', token, { sameSite: 'none', secure: true, domain: '.onrender.com'  }).status(201).json({
+                res.cookie('token', token, { sameSite: 'none', secure: true }).status(201).json({
                     id: foundUser._id,
                 });
             });
