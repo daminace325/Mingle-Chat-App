@@ -23,19 +23,45 @@ export default function RegisterAndLoginForm() {
 
     async function handleSubmit(e) {
         e.preventDefault();
+        
+        // Prevent duplicate submissions
+        if (loading) return;
+        
+        // Client-side validation
+        if (!username || !password) {
+            setError('Username and password are required');
+            return;
+        }
+        
+        if (isLoginOrRegister === 'register') {
+            if (username.length < 3) {
+                setError('Username must be at least 3 characters long');
+                return;
+            }
+            if (password.length < 6) {
+                setError('Password must be at least 6 characters long');
+                return;
+            }
+        }
+        
         setError('');
         setLoading(true);
 
         try {
             const url = isLoginOrRegister === 'register' ? 'register' : 'login';
             const { data } = await axios.post(url, { username, password });
-            setLoggedInUsername(username);
+            
+            // Set user data immediately from response
+            setLoggedInUsername(data.username || username);
             setId(data.id);
+            
         } catch (error) {
             if (error.response) {
                 setError(error.response.data);
+            } else if (error.code === 'ECONNABORTED') {
+                setError('Request timed out. Please check your connection and try again.');
             } else {
-                setError('An error occurred. Please try again.');
+                setError('Unable to connect. Please check your internet connection.');
             }
         } finally {
             setLoading(false);

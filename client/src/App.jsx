@@ -5,6 +5,9 @@ import Routes from "./Routes"
 function App() {
 	axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL
 	axios.defaults.withCredentials = true
+	// Add timeout to prevent hanging requests
+	axios.defaults.timeout = 10000 // 10 seconds
+	
 	return (
 		<UserContextProvider>
 			<Routes />

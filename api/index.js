@@ -79,21 +79,47 @@ app.get('/api/profile', (req, res) => {
 })
 
 app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-    const foundUser = await User.findOne({ username });
-    if (foundUser) {
-        const passOk = await bcrypt.compare(password, foundUser.password);
-        if (passOk) {
-            jwt.sign({ userId: foundUser._id, username }, jwtSecret, {}, (err, token) => {
-                res.cookie('token', token, { sameSite: 'none', secure: true }).status(201).json({
-                    id: foundUser._id,
-                });
-            });
-        } else {
-            res.status(400).json('Incorrect password');
+    try {
+        const { username, password } = req.body;
+        
+        // Input validation
+        if (!username || !password) {
+            return res.status(400).json('Username and password are required');
         }
-    } else {
-        res.status(400).json('User not found');
+        
+        // Find user with lean() for faster query
+        const foundUser = await User.findOne({ username }).lean();
+        if (!foundUser) {
+            return res.status(400).json('User not found');
+        }
+        
+        // Use async bcrypt.compare for non-blocking operation
+        const passOk = await bcrypt.compare(password, foundUser.password);
+        if (!passOk) {
+            return res.status(400).json('Incorrect password');
+        }
+        
+        // Promisify jwt.sign for cleaner async handling
+        const token = await new Promise((resolve, reject) => {
+            jwt.sign({ userId: foundUser._id, username }, jwtSecret, { expiresIn: '7d' }, (err, token) => {
+                if (err) reject(err);
+                else resolve(token);
+            });
+        });
+        
+        res.cookie('token', token, { 
+            sameSite: 'none', 
+            secure: true,
+            httpOnly: true,
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        }).status(200).json({
+            id: foundUser._id,
+            username: foundUser.username
+        });
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json('Server error during login');
     }
 });
 
@@ -103,24 +129,62 @@ app.post('/api/logout', (req, res) => {
 
 
 app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body
     try {
-        const hashedPassword = bcrypt.hashSync(password, bcryptSalt)
+        const { username, password } = req.body;
+        
+        // Input validation
+        if (!username || !password) {
+            return res.status(400).json('Username and password are required');
+        }
+        
+        if (username.length < 3) {
+            return res.status(400).json('Username must be at least 3 characters long');
+        }
+        
+        if (password.length < 6) {
+            return res.status(400).json('Password must be at least 6 characters long');
+        }
+        
+        // Check if user already exists
+        const existingUser = await User.findOne({ username }).lean();
+        if (existingUser) {
+            return res.status(400).json('Username already exists');
+        }
+        
+        // Use async bcrypt.hash for non-blocking operation
+        const hashedPassword = await bcrypt.hash(password, bcryptSalt);
         const createdUser = await User.create({
             username: username,
             password: hashedPassword
-        })
-        jwt.sign({ userId: createdUser._id, username }, jwtSecret, {}, (err, token) => {
-            if (err) throw err
-            res.cookie('token', token, { sameSite: 'none', secure: true }).status(201).json({
-                id: createdUser._id,
-            })
-        })
+        });
+        
+        // Promisify jwt.sign
+        const token = await new Promise((resolve, reject) => {
+            jwt.sign({ userId: createdUser._id, username }, jwtSecret, { expiresIn: '7d' }, (err, token) => {
+                if (err) reject(err);
+                else resolve(token);
+            });
+        });
+        
+        res.cookie('token', token, { 
+            sameSite: 'none', 
+            secure: true,
+            httpOnly: true,
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        }).status(201).json({
+            id: createdUser._id,
+            username: createdUser.username
+        });
+        
     } catch (error) {
-        if (error) throw error
-        res.status(500).json('error')
+        console.error('Registration error:', error);
+        if (error.code === 11000) { // MongoDB duplicate key error
+            res.status(400).json('Username already exists');
+        } else {
+            res.status(500).json('Server error during registration');
+        }
     }
-})
+});
 
 const server = app.listen(3000)
 
